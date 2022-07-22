@@ -58,7 +58,6 @@ def create_cram_channel(LinkedHashMap row) {
         exit 1, "An empty new line has been detected at the end of $row.ped, please remove this line."
     }
 
-
     // get family_id
     def family_id = (ped =~ /\n([^#]\w+)/)[0][1]
 
@@ -67,13 +66,15 @@ def create_cram_channel(LinkedHashMap row) {
     meta.id = row.sample
     meta.family = family_id
 
-    // add path(s) of the fastq file(s) to the meta map
+    // add path(s) of the file(s) to the channel with meta
     def cram_meta = []
     if (!file(row.cram).exists()) {
         exit 1, "ERROR: Please check input samplesheet -> CRAM file does not exist!\n${row.cram}"
     }
-    if (!file(row.crai).exists()) {
-        exit 1, "ERROR: Please check input samplesheet -> CRAI file does not exist!\n${row.crai}"
+    if (row.crai != ""){
+        if (!file(row.crai).exists()) {
+            exit 1, "ERROR: Please check input samplesheet -> CRAI file does not exist!\n${row.crai}"
+        }
     }
     if (!file(row.bed).exists()) {
         exit 1, "ERROR: Please check input samplesheet -> BED file does not exist!\n${row.bed}"
@@ -82,7 +83,9 @@ def create_cram_channel(LinkedHashMap row) {
         exit 1, "ERROR: Please check input samplesheet -> PED file does not exist!\n${row.ped}"
     }
 
-    cram_meta = [ meta, file(row.cram), file(row.crai), file(row.bed), file(row.ped) ]
+    def crai = row.crai == "" ? [] : file(row.crai)
+
+    cram_meta = [ meta, file(row.cram), crai, file(row.bed), file(row.ped) ]
 
     return cram_meta
 }

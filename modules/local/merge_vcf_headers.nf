@@ -7,7 +7,7 @@ process MERGE_VCF_HEADERS {
         'quay.io/biocontainers/python:3.9' }"
 
     input:
-    tuple val(meta), path(vcf1), path(vcf2)
+    tuple val(meta), path(vcf), path(ped_vcf)
 
     output:
     tuple val(meta), path("*.vcf")  , emit: vcf
@@ -18,8 +18,8 @@ process MERGE_VCF_HEADERS {
 
     """
     merge_vcf_headers.py \\
-        $vcf1 \\
-        $vcf2 \\
+        $vcf \\
+        $ped_vcf \\
         ${prefix}.vcf
 
     cat <<-END_VERSIONS > versions.yml

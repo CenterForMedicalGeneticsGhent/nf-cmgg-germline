@@ -75,7 +75,6 @@ class RowChecker:
         """
         self._validate_sample(row)
         self._validate_first(row)
-        self._validate_second(row)
         self._validate_third(row)
         self._validate_fourth(row)
         self._seen.add((row[self._sample_col], row[self._first_col]))
@@ -91,11 +90,6 @@ class RowChecker:
         """Assert that the CRAM entry is non-empty and has the right format."""
         assert len(row[self._first_col]) > 0, "A CRAM file is required."
         self._validate_format(row[self._first_col],[".cram"])
-
-    def _validate_second(self, row):
-        """Assert that the CRAI entry has the right format if it exists."""
-        assert len(row[self._second_col]) > 0, "A CRAI file is required"
-        self._validate_format(row[self._second_col],[".crai",".bai"])
 
     def _validate_third(self, row):
         """Assert that the BED entry has the right format if it exists."""

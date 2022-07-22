@@ -27,7 +27,7 @@ process SAMTOOLS_MERGE {
     def prefix          = task.ext.prefix ?: "${meta.id}"
     def reference       = fasta ? "--reference ${fasta}" : ""
     def convert_to_cram = cram_merge ? 
-        "samtools view --threads ${task.cpus} --reference ${fasta} $args2 ${prefix}.bam -C -o ${prefix}.cram" : ""
+        "samtools view --threads ${task.cpus} --reference ${fasta} $args2 ${prefix}.bam -C -o ${prefix}.cram && rm ${prefix}.bam" : ""
     """
     samtools \\
         merge \\

@@ -75,23 +75,43 @@ workflow POST_PROCESS {
     if (!skip_genotyping){
 
         //
-        // Combine the GVCFs in each family
+        // Merge all the GVCFs from each family
         //
 
-        COMBINEGVCFS(
-            combine_gvcfs_input,
-            fasta,
-            fasta_fai,
-            dict
-        )
+        if (params.merge){
 
-        ch_versions = ch_versions.mix(COMBINEGVCFS.out.versions)
+            BCFTOOLS_MERGE(
+                combine_gvcfs_input,
+                [],
+                fasta,
+                fasta_fai
+            )
+
+            combined_gvcfs = BCFTOOLS_MERGE.out.merged_variants
+            ch_versions = ch_versions.mix(BCFTOOLS_MERGE.out.versions)
+
+        } else {
+
+            //
+            // Combine the GVCFs in each family
+            //
+
+            COMBINEGVCFS(
+                combine_gvcfs_input,
+                fasta,
+                fasta_fai,
+                dict
+            )
+
+            combined_gvcfs = COMBINEGVCFS.out.combined_gvcf
+            ch_versions = ch_versions.mix(COMBINEGVCFS.out.versions)
+
+        }
 
         //
         // Create indexes for the combined GVCFs
         //
 
-        combined_gvcfs = COMBINEGVCFS.out.combined_gvcf
 
         TABIX_COMBINED_GVCFS(
             combined_gvcfs
@@ -135,20 +155,41 @@ workflow POST_PROCESS {
         // Merge all the GVCFs from each family
         //
 
-        BCFTOOLS_MERGE(
-            combine_gvcfs_input,
-            [],
-            fasta,
-            fasta_fai
-        )
+        if (params.merge){
 
-        ch_versions = ch_versions.mix(BCFTOOLS_MERGE.out.versions)
+            BCFTOOLS_MERGE(
+                combine_gvcfs_input,
+                [],
+                fasta,
+                fasta_fai
+            )
+
+            combined_gvcfs = BCFTOOLS_MERGE.out.merged_variants
+            ch_versions = ch_versions.mix(BCFTOOLS_MERGE.out.versions)
+
+        } else {
+
+            //
+            // Combine the GVCFs in each family
+            //
+
+            COMBINEGVCFS(
+                combine_gvcfs_input,
+                fasta,
+                fasta_fai,
+                dict
+            )
+
+            combined_gvcfs = COMBINEGVCFS.out.combined_gvcf
+            ch_versions = ch_versions.mix(COMBINEGVCFS.out.versions)
+
+        }
 
         //
         // Convert all the GVCFs to VCF files
         //
 
-        bcftools_convert_input = BCFTOOLS_MERGE.out.merged_variants.map({ meta, vcf ->
+        bcftools_convert_input = combined_gvcfs.map({ meta, vcf ->
                                         [ meta, vcf, [] ]
                                     })
 

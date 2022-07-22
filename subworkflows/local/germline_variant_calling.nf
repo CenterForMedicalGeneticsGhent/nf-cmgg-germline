@@ -31,14 +31,13 @@ workflow GERMLINE_VARIANT_CALLING {
     // Merge the CRAM files if there are multiple per sample
     //
 
-    crams.groupTuple()
-    .branch({ meta, cram, crai ->
-        multiple: cram.size() > 1
-            return [meta, cram]
-        single:   cram.size() == 1
-            return [meta, cram, crai]
-    })
-    .set({cram_branch})
+    cram_branch = crams.groupTuple()
+                    .branch({ meta, cram, crai ->
+                        multiple: cram.size() > 1
+                            return [meta, cram]
+                        single:   cram.size() == 1
+                            return [meta, cram, crai]
+                    })
 
     SAMTOOLS_MERGE(
         cram_branch.multiple,
@@ -46,24 +45,29 @@ workflow GERMLINE_VARIANT_CALLING {
         fasta_fai,
         cram_merge
     )
-            
+
+    merged_crams = SAMTOOLS_MERGE.out.cram
+                    .mix(SAMTOOLS_MERGE.out.bam)
+                    .map({ meta, cram -> [ meta, cram, [] ]})
+                    .mix(cram_branch.single.map({meta, cram, crai -> 
+                            [ meta, cram[0], crai[0]]
+                        }))
+                    .branch({ meta, cram, crai ->
+                        not_indexed: crai == []
+                            return [ meta, cram ]
+                        indexed: crai != []
+                            return [ meta, cram, crai ]
+                    })
+
     SAMTOOLS_INDEX(
-        cram_merge ? SAMTOOLS_MERGE.out.cram : SAMTOOLS_MERGE.out.bam
+        merged_crams.not_indexed
     )
 
-    if (cram_merge) {
-        merged_crams = SAMTOOLS_MERGE.out.cram
-                        .combine(SAMTOOLS_INDEX.out.crai, by: 0)
-                        .mix(cram_branch.single.map({meta, cram, crai -> 
-                                [ meta, cram[0], crai[0]]
-                            }))
-    } else {
-        merged_crams = SAMTOOLS_MERGE.out.bam
-                        .combine(SAMTOOLS_INDEX.out.bai, by: 0)
-                        .mix(cram_branch.single.map({meta, cram, crai -> 
-                                [ meta, cram[0], crai[0]]
-                            }))
-    }
+    ready_crams = merged_crams.not_indexed.combine(SAMTOOLS_INDEX.out.crai, by:0)
+                    .mix(merged_crams.not_indexed.combine(SAMTOOLS_INDEX.out.bai, by:0))
+                    .mix(merged_crams.indexed)
+
+    ready_crams.view()
 
     //
     // Merge the BED files if there are multiple per sample
@@ -108,7 +112,7 @@ workflow GERMLINE_VARIANT_CALLING {
     //
 
     if (use_dragstr_model) {
-        calibratedragstrmodel_input = merged_crams.map(
+        calibratedragstrmodel_input = ready_crams.map(
             { meta, cram, crai ->
                 [meta, cram, crai, []]
             }
@@ -124,11 +128,11 @@ workflow GERMLINE_VARIANT_CALLING {
 
         ch_versions = ch_versions.mix(CALIBRATEDRAGSTRMODEL.out.versions)
 
-        cram_models = merged_crams.combine(split_beds, by: 0)
+        cram_models = ready_crams.combine(split_beds, by: 0)
                           .combine(CALIBRATEDRAGSTRMODEL.out.dragstr_model, by: 0)
     } 
     else {
-        cram_models = merged_crams.combine(split_beds, by: 0)
+        cram_models = ready_crams.combine(split_beds, by: 0)
     }
 
     //

@@ -1,4 +1,4 @@
-# ![nf-cmgg-germline](docs/images/nf-cmgg-germline_logo_light.png#gh-light-mode-only) ![nf-cmgg-germline](docs/images/nf-cmgg-germline_logo_dark.png#gh-dark-mode-only)
+# CenterForMedicalGeneticsGhent/nf-cmgg-germline
 
 [![Nextflow](https://img.shields.io/badge/nextflow%20DSL2-%E2%89%A521.10.3-23aa62.svg)](https://www.nextflow.io/)
 [![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?logo=docker)](https://www.docker.com/)
